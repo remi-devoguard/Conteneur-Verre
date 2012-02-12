@@ -51,15 +51,13 @@ void print_time()
 
 //interrupt quand btn1 appuyé
 void isr_btn1()
-{
-  
+{ 
   if(!btn1_state)
   {
     btn1_state=true;
     Serial.println("Pushed");
     //on met en place le timeout
     timer.setTimeout(1000, clear_btn1);
-    timer.run();
   }
 }
 
@@ -67,7 +65,6 @@ void isr_btn1()
 //interrupt quand btn2 appuyé
 void isr_btn2()
 {
-  
   if(btn1_state)
   {
     btn1_state=false;
@@ -97,16 +94,16 @@ void setup() {
     /* Chargement de l'heure */
     rtc.time(t);
   
-    //pinMode(12, INPUT);
-    //pinMode(13, INPUT);
+    pinMode(2, INPUT);
+    pinMode(3, INPUT);
   
     //Activation Pull-up
     digitalWrite(2, HIGH);  
     digitalWrite(3, HIGH);
     
     // 0 = pin 2 ; 1 = pin 3
-    attachInterrupt(0, isr_btn1, RISING);
-    attachInterrupt(1, isr_btn2, RISING);   
+    attachInterrupt(0, isr_btn1, FALLING);
+    attachInterrupt(1, isr_btn2, FALLING);   
 }
 
 //Boucle principale
@@ -114,6 +111,7 @@ void loop() {
    // Serial.println( readVcc(), DEC );
     //print_time();
     //delay(1000);
+     timer.run();
 }
 
 
