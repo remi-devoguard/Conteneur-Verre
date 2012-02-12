@@ -91,8 +91,8 @@ void clear_btn1()
 {
   if(btn1_state)
   {
-    DEBUG_PRINT("Btn1 TimeOut");  
     btn1_state=false;
+    DEBUG_PRINT("Btn1 TimeOut");  
   }
 }
 
