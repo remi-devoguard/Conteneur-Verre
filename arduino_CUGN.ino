@@ -4,6 +4,15 @@
 #include "DS1302.h"
 #include "SimpleTimer.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+  #define DEBUG_PRINT(x)  Serial.println (x)
+#else
+  #define DEBUG_PRINT(x)
+#endif 
+
+
 //Création de l'objet Timer
 SimpleTimer timer;
 
@@ -45,7 +54,8 @@ void print_time()
            t.day,
            t.yr, t.mon, t.date,
            t.hr, t.min, t.sec);
-  Serial.println(buf);
+  DEBUG_PRINT(buf);
+
 }
 
 
@@ -55,7 +65,7 @@ void isr_btn1()
   if(!btn1_state)
   {
     btn1_state=true;
-    Serial.println("Pushed");
+    DEBUG_PRINT("Pushed");
     //on met en place le timeout
     timer.setTimeout(1000, clear_btn1);
   }
@@ -68,8 +78,8 @@ void isr_btn2()
   if(btn1_state)
   {
     btn1_state=false;
-    Serial.println("Pushed 2");
-    Serial.println("Bouteille"); 
+    DEBUG_PRINT("Pushed 2");
+    DEBUG_PRINT("Bouteille"); 
   }  
 }
 
@@ -77,22 +87,16 @@ void isr_btn2()
 //On enleve le flag quand le timeout du 1er btn est atteint
 void clear_btn1()
 {
+  if(btn1_state)
+  {
+    DEBUG_PRINT("Btn1 TimeOut");  
     btn1_state=false;
+  }
 }
 
 
 //Setup
 void setup() {
-    Serial.begin(9600);
-  
-    rtc.write_protect(false);
-    rtc.halt(false);
-
-    /*Init A/M/J h */
-    Time t(2012, 1, 28, 21, 37, 37, 3);
-
-    /* Chargement de l'heure */
-    rtc.time(t);
   
     pinMode(2, INPUT);
     pinMode(3, INPUT);
@@ -104,11 +108,24 @@ void setup() {
     // 0 = pin 2 ; 1 = pin 3
     attachInterrupt(0, isr_btn1, FALLING);
     attachInterrupt(1, isr_btn2, FALLING);   
+    
+    Serial.begin(9600);
+  
+    rtc.write_protect(false);
+    rtc.halt(false);
+
+    /*Init A/M/J h */
+    Time t(2012, 1, 28, 21, 37, 37, 3);
+
+    /* Chargement de l'heure */
+    rtc.time(t);
+  
+    
 }
 
 //Boucle principale
 void loop() {
-   // Serial.println( readVcc(), DEC );
+    DEBUG_PRINT(readVcc());
     //print_time();
     //delay(1000);
      timer.run();
