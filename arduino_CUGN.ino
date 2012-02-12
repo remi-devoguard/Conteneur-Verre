@@ -127,9 +127,8 @@ void setup() {
 
 //Boucle principale
 void loop() {
-    DEBUG_PRINT(readVcc());
+    //DEBUG_PRINT(readVcc());
     //print_time();
-    //delay(1000);
      timer.run();
 }
 
