@@ -1,8 +1,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <EEPROM.h>
+
 #include "DS1302.h"
 #include "SimpleTimer.h"
+
+//Nb Bouteilles
+byte Nb_bouteilles;
 
 #define DEBUG
 
@@ -81,7 +86,9 @@ void isr_btn2()
   {
     btn1_state=false;
     DEBUG_PRINT("Pushed 2");
-    DEBUG_PRINT("Bouteille"); 
+    DEBUG_PRINT("Bouteille");
+    Nb_bouteilles++; 
+    EEPROM.write(42, Nb_bouteilles);
   }  
 }
 
@@ -112,6 +119,10 @@ void setup() {
     attachInterrupt(1, isr_btn2, FALLING);   
     
     Serial.begin(9600);
+    
+    Nb_bouteilles = EEPROM.read(42);
+  
+    DEBUG_PRINTDEC(Nb_bouteilles);
   
     rtc.write_protect(false);
     rtc.halt(false);
@@ -127,7 +138,7 @@ void setup() {
 
 //Boucle principale
 void loop() {
-    //DEBUG_PRINT(readVcc());
+    //DEBUG_PRINTDEC(readVcc());
     //print_time();
      timer.run();
 }
