@@ -8,8 +8,10 @@
 
 #ifdef DEBUG
   #define DEBUG_PRINT(x)  Serial.println (x)
+  #define DEBUG_PRINTDEC(x) Serial.println(x, DEC)
 #else
   #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTDEC(x)
 #endif 
 
 
