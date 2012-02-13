@@ -1,4 +1,4 @@
-
+#include <SoftwareSerial.h>
 #include <stdio.h>
 #include <string.h>
 #include <EEPROM.h>
@@ -7,12 +7,13 @@
 #include "SimpleTimer.h"
 
 //Nb Bouteilles
-byte Nb_bouteilles;
+byte Nb_bouteilles; //TODO: byte, int plutot ? et il est à 255 de base
 
 #define DEBUG
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(x)  Serial.println (x)
+  #define DEBUG_PRINT_CHAR(x) Serial.print (x)
+  #define DEBUG_PRINT(x) Serial.println (x)
   #define DEBUG_PRINTDEC(x) Serial.println(x, DEC)
 #else
   #define DEBUG_PRINT(x)
@@ -36,6 +37,19 @@ boolean btn1_state = false;
 //Création de l'objet pour gestion DS1302
 DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
 
+// Serial:
+char incoming_char=0;      //Will hold the incoming character from the Serial Port.
+SoftwareSerial cell(8,9);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
+
+// Conteneur:
+char baseNumber[]="0631424719";
+char containerID=1; // l'id du conteneur courant, à modifier à chaque fois
+char update1Sent=0;
+char update2Sent=0;
+char hourUpdate1=12;
+char hourUpdate2=19;
+char hourReset=0;
+SimpleTimer timerUpdates;
 
 //Fonction Lecture VCC
 long readVcc() {
@@ -103,10 +117,63 @@ void clear_btn1()
   }
 }
 
+// Pour envoyer le premier SMS au démarrage (id, date, batterie)
+void sendPing(){
+	print_time();
+	Time t = rtc.time();
+	long indBattery=readVcc();
+	char str[36]; // 10 + 2 + 2 + 2 + 4 + 2 + 2 + 2 + 10 (long, on sait jamais) = 36
+	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec,  indBattery);
+	sendSMS(str);
+}
+
+// Pour envoyer les SMS d'update (id, nbBouteilles, batterie)
+void sendUpdatedCounter(){
+	long indBattery=readVcc(); // la charge de la batterie
+	char str[36]; // 12 + 2 + 5 + 10 (long, on sait jamais) = 29
+	sprintf(str, "NYBI;UPDATE;%d;%d;%d", containerID, Nb_bouteilles, indBattery);
+	sendSMS(str);
+}
+
+// Envoie un SMS
+void sendSMS(char* str){
+	cell.println("AT+CMGF=1"); // set SMS mode to text
+	cell.print("AT+CMGS=");  // now send message...
+	cell.write(34); // ASCII equivalent of "
+	cell.print(baseNumber);
+	cell.write(34);  // ASCII equivalent of "
+	cell.write(13);  // ASCII equivalent of Carriage Return
+	delay(500); // give the module some thinking time
+    cell.print(str);
+	cell.write(26);  // ASCII equivalent of Ctrl-Z}
+}
+
+// Regarde si on doit envoyer une update ou remettre les compteurs d'update a zero
+void checkUpdates(){
+	Time t = rtc.time(); // recuperer le temps
+	DEBUG_PRINT("Checking Time");
+	print_time();
+
+	if (!update1Sent && t.hr >= hourUpdate1 && t.hr <= hourUpdate1+1){
+		sendUpdatedCounter();
+		update1Sent=1;
+		DEBUG_PRINT("Update1");
+	}
+	else if (!update2Sent && t.hr >= hourUpdate2 && t.hr <= hourUpdate2+1){
+		sendUpdatedCounter();
+		update2Sent=1;
+		DEBUG_PRINT("Update2");
+	}
+
+	if (t.hr >= hourReset && t.hr <= hourReset+1){
+		update1Sent=0;
+		update2Sent=0;
+		DEBUG_PRINT("Update Reset");
+	}
+}
 
 //Setup
 void setup() {
-  
     pinMode(2, INPUT);
     pinMode(3, INPUT);
   
@@ -128,19 +195,31 @@ void setup() {
     rtc.halt(false);
 
     /*Init A/M/J h */
-    Time t(2012, 1, 28, 21, 37, 37, 3);
-
+    Time t(2012, 2, 16, 19, 37, 37, 3);
+	
     /* Chargement de l'heure */
     rtc.time(t);
   
-    
+    cell.begin(9600);
+	DEBUG_PRINT("Starting SM5100B Communication...");
+	delay(5000);
+	cell.print("ATE1\r"); //local echo
+	timerUpdates.setInterval(180000, checkUpdates);//TODO remettre 10 minutes
+
+	// delay pour attendre la connexion
+	delay(60000);
+	sendPing();
 }
 
 //Boucle principale
 void loop() {
-    //DEBUG_PRINTDEC(readVcc());
-    //print_time();
-     timer.run();
+	if(cell.available()>0){ //If a character comes in from the cellular module...
+		incoming_char=cell.read();    //Get the character from the cellular serial port.
+		DEBUG_PRINT_CHAR(incoming_char);  //Print the incoming character to the terminal.
+	}
+
+    timer.run();
+	timerUpdates.run();
 }
 
 
