@@ -8,7 +8,6 @@
 
 //Nb Bouteilles
 unsigned int Nb_bouteilles;
-//byte Nb_bouteilles; //TODO: byte, int plutot ? et il est à 255 de base
 
 #define DEBUG
 
@@ -119,21 +118,21 @@ void clear_btn1()
   }
 }
 
-// Pour envoyer le premier SMS au démarrage (id, date, batterie)
+// Pour envoyer le premier SMS au démarrage (id, date, nbBouteilles, batterie)
 void sendPing(){
-	print_time();
 	Time t = rtc.time();
 	long indBattery=readVcc();
-	char str[36]; // 10 + 2 + 2 + 2 + 4 + 2 + 2 + 2 + 10 (long, on sait jamais) = 36
-	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec,  indBattery);
+	char str[49]; // 10 + 2 + 1 + 2 + 1 + 2 + 1 + 4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 5 + 1 + 10 (long, on sait jamais) = 49
+	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
-// Pour envoyer les SMS d'update (id, nbBouteilles, batterie)
+// Pour envoyer les SMS d'update (id, date, nbBouteilles, batterie)
 void sendUpdatedCounter(){
-	long indBattery=readVcc(); // la charge de la batterie
-	char str[36]; // 12 + 2 + 5 + 10 (long, on sait jamais) = 29
-	sprintf(str, "NYBI;UPDATE;%d;%d;%d", containerID, Nb_bouteilles, indBattery);
+	Time t = rtc.time();
+	long indBattery=readVcc();
+	char str[51]; // 2 + 49 = 51
+	sprintf(str, "NYBI;UPDATE;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
