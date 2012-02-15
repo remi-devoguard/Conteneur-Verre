@@ -43,7 +43,7 @@ SoftwareSerial cell(8,9);  //Create a 'fake' serial port. Pin 8 is the Rx pin, p
 
 // Conteneur:
 char baseNumber[]="0631424719";
-char containerID=1; // l'id du conteneur courant, à modifier à chaque fois
+byte containerID=1; // l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12;
