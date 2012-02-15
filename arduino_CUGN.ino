@@ -7,7 +7,7 @@
 #include "SimpleTimer.h"
 
 //Nb Bouteilles
-int Nb_bouteilles;
+unsigned int Nb_bouteilles;
 //byte Nb_bouteilles; //TODO: byte, int plutot ? et il est à 255 de base
 
 #define DEBUG
@@ -103,8 +103,8 @@ void isr_btn2()
     DEBUG_PRINT("Pushed 2");
     DEBUG_PRINT("Bouteille");
     Nb_bouteilles++; 
-    EEPROM.write(43, Nb_bouteilles>>2);
-    EEPROM.write(42, Nb_bouteilles|0x0F);
+    EEPROM.write(43, Nb_bouteilles >> 8);
+    EEPROM.write(42, Nb_bouteilles & 0x00FF);
   }  
 }
 
@@ -189,7 +189,7 @@ void setup() {
     
     Serial.begin(9600);
     
-    Nb_bouteilles = EEPROM.read(43) << 2 | EEPROM.read(42);
+    Nb_bouteilles = (EEPROM.read(43) << 8) | EEPROM.read(42);
   
     DEBUG_PRINTDEC(Nb_bouteilles);
   
@@ -201,8 +201,8 @@ void setup() {
 	
     /* Chargement de l'heure */
     rtc.time(t);
-  EEPROM.write(43,0);
-    EEPROM.write(42, 0);
+  //EEPROM.write(43,0);
+  //EEPROM.write(42, 0);
     cell.begin(9600);
 	DEBUG_PRINT("Starting SM5100B Communication...");
 	delay(5000);
@@ -211,7 +211,7 @@ void setup() {
 
 	// delay pour attendre la connexion
 	delay(60000);
-	//sendPing();
+	sendPing();
 }
 
 //Boucle principale
@@ -222,7 +222,7 @@ void loop() {
 	}
 
     timer.run();
-	//timerUpdates.run();
+    timerUpdates.run();
 }
 
 
