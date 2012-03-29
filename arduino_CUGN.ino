@@ -42,8 +42,8 @@ char incoming_char=0;      //Will hold the incoming character from the Serial Po
 SoftwareSerial cell(8,9);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
 
 // Conteneur:
-char baseNumber[]="0631424719";
-char containerID=1; // l'id du conteneur courant, à modifier à chaque fois
+char baseNumber[]="+33631424719";
+char containerID=0; // l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12;
@@ -138,15 +138,20 @@ void sendUpdatedCounter(){
 
 // Envoie un SMS
 void sendSMS(char* str){
-	cell.println("AT+CMGF=1"); // set SMS mode to text
+        cell.println("AT+CFUN=0");
+        delay(60000);
+        
+	//cell.println("AT+CMGF=1"); // set SMS mode to text
 	cell.print("AT+CMGS=");  // now send message...
 	cell.write(34); // ASCII equivalent of "
 	cell.print(baseNumber);
 	cell.write(34);  // ASCII equivalent of "
 	cell.write(13);  // ASCII equivalent of Carriage Return
 	delay(500); // give the module some thinking time
-    cell.print(str);
+        cell.print(str);
 	cell.write(26);  // ASCII equivalent of Ctrl-Z}
+
+        cell.println("AT+CFUN=1");
 }
 
 // Regarde si on doit envoyer une update ou remettre les compteurs d'update a zero
@@ -155,7 +160,7 @@ void checkUpdates(){
 	DEBUG_PRINT("Checking Time");
 	print_time();
 
-	if (!update1Sent && t.hr >= hourUpdate1 && t.hr <= hourUpdate1+1){
+	if (true || (!update1Sent && t.hr >= hourUpdate1 && t.hr <= hourUpdate1+1)){
 		sendUpdatedCounter();
 		update1Sent=1;
 		DEBUG_PRINT("Update1");
@@ -202,15 +207,15 @@ void setup() {
     rtc.time(t);
   //EEPROM.write(43,0);
   //EEPROM.write(42, 0);
-    cell.begin(9600);
-	DEBUG_PRINT("Starting SM5100B Communication...");
+    cell.begin(19200);//9600
+	DEBUG_PRINT("Starting SIM900 Communication...");//SM5100B
 	delay(5000);
 	cell.print("ATE1\r"); //local echo
-	timerUpdates.setInterval(180000, checkUpdates);//TODO remettre 10 minutes
+	timerUpdates.setInterval(60000, checkUpdates);//TODO remettre 10 minutes
 
 	// delay pour attendre la connexion
-	delay(60000);
-	sendPing();
+	//delay(60000);
+	//sendPing();
 }
 
 //Boucle principale
