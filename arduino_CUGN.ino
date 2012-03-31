@@ -43,31 +43,26 @@ char incoming_char=0;      //Will hold the incoming character from the Serial Po
 SoftwareSerial cell(8,9);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
 
 // Conteneur:
-char baseNumber[]="+33631424719";
-char containerID=0; // l'id du conteneur courant, à modifier à chaque fois
+char baseNumber[]="+33631424719"; //TODO numéro auquel les ping/update seront envoyes
+char containerID=0; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12;
 char hourUpdate2=19;
 char hourReset=0;
+char retMomentToString[20];
 SimpleTimer timerUpdates;
+Moment currentTime;
+int intCheckUpdate=60;  //TODO mettre 600 pour checker l'heure toutes les 10 minutes
 
 
-Moment momentFromString(char* str){
-
-
+void momentToString(Moment mom){ //Remarque: cette construction est affreuse mais fonctionne, à refaire (mais tester)
+  sprintf(retMomentToString, "%02d/%02d/%04d %02d:%02d:%02d\0", mom.date, mom.month, mom.year, mom.hour, mom.minute, mom.second);
 }
 
-void writeln(char* str, int taille){
-  for (int i=0; i<taille; i++){
-    Serial.write(str[i]);
-  }
-}
-
-char* momentToString(Moment mom){
-  char str[19]; // 2 + 49 = 51
-  sprintf(str, "%02d/%02d/%04d %02d:%02d:%02d", mom.date, mom.month, mom.year, mom.hour, mom.minute, mom.second);
-  return str;
+void printTime(){
+  momentToString(currentTime);
+  Serial.println(retMomentToString);
 }
 
 Moment newMoment(int year, int month, int date, int hour, int minute, int second)
@@ -96,67 +91,71 @@ long readVcc() {
   return result;
 }
 
-
-int charToInt(char c){
-  char str[1];
-  str[0]=c;
-  return atoi(str);
-}
-
 void getTime(int delay_s){
-  Serial.println("time");
-   
    // empties the buffer
-  while (Serial.available() > 0){
+  while (cell.available() > 0){
     cell.read();
+  }
+
+  while (Serial.available() > 0){
+    Serial.read();
   }
    
   cell.println("AT+CCLK?");
+  //cell.write(34);
   delay(500);
   int taille=20;
   char str[taille];
    
-  while (cell.available() > 29){
-    cell.read();
+  Serial.println("debut");
+  for (int i=0; i<=19; i++){
+    Serial.write(cell.read());
   }
+  Serial.println("fin1");
    
-  if (cell.available() >= taille){  //reading a single 5 byte command
+  if (cell.available() >= taille){
     for (int i = 0; i <= taille-1; i++) {
       str[i] = cell.read();
       Serial.write(str[i]);
     }
+    Serial.println("fin2");
 
-    char Syear[2];
+    char Syear[3];
     Syear[0]=str[0];
     Syear[1]=str[1];
+	Syear[2]='\0';
     int year=atoi(Syear);    
 
-    char Smonth[2];
+    char Smonth[3];
     Smonth[0]=str[3];
     Smonth[1]=str[4];
+	Smonth[2]='\0';
     int month=atoi(Smonth);    
 
-    char Sdate[2];
+    char Sdate[3];
     Sdate[0]=str[6];
     Sdate[1]=str[7];
+	Sdate[2]='\0';
     int date=atoi(Sdate);    
 
-    char Shour[2];
+    char Shour[3];
     Shour[0]=str[9];
     Shour[1]=str[10];
+	Shour[2]='\0';
     int hour=atoi(Shour);   
 
-    char Sminute[2];
+    char Sminute[3];
     Sminute[0]=str[12];
     Sminute[1]=str[13];
+	Sminute[2]='\0';
     int minute=atoi(Sminute);   
 
-    char Ssecond[2];
+    char Ssecond[3];
     Ssecond[0]=str[15];
     Ssecond[1]=str[16];
+	Ssecond[2]='\0';
     int second=atoi(Ssecond);   
 
-    // TODO 
     Moment mom;
     mom.year = 2000+year;
     mom.month = month;
@@ -164,31 +163,37 @@ void getTime(int delay_s){
     mom.hour = hour;
     mom.minute = minute;
     mom.second = second;
-	
-	/*Serial.write(year);
-	Serial.write(month);
-	Serial.write(date);
-	Serial.write(hour);
-	Serial.write(minute);*/
-	writeln(momentToString(mom), taille);
-    
-    //Serial.println("");
-     //Serial.write(str);
+
+	if (year>=12 && year <=20 && month >=1 && month <= 12 && date >= 1 && date <= 31 && hour >= 0 && hour <= 24 && minute >= 0 && minute <= 60 && second >= 0 && second <= 60){
+		currentTime.year=mom.year;
+		currentTime.month=mom.month;
+		currentTime.date=mom.date;
+		currentTime.hour=mom.hour;
+		currentTime.minute=mom.minute;
+		currentTime.second=mom.second;
+
+		//momentToString(currentTime);
+		//Serial.println(retMomentToString);
+	}
+	else {
+		Serial.println("Return is not a moment : no change done to currentTime");
+
+		/*Serial.println(Syear);
+		Serial.println(Smonth);
+		Serial.println(Sdate);
+		Serial.println(Shour);
+		Serial.println(Sminute);
+
+		Serial.println(year);
+		Serial.println(month);
+		Serial.println(date);
+		Serial.println(hour);
+		Serial.println(minute);*/
+	}
   }
-}
-
-
-void print_time()
-{
-  /* Récupération du temps */
-  Time t = rtc.time();
-
-  snprintf(buf, sizeof(buf), "%01d %04d-%02d-%02d %02d:%02d:%02d",
-           t.day,
-           t.yr, t.mon, t.date,
-           t.hr, t.min, t.sec);
-  DEBUG_PRINT(buf);
-
+  else {
+	Serial.println("moins de 20");
+  }
 }
 
 
@@ -198,7 +203,7 @@ void isr_btn1()
   if(!btn1_state)
   {
     btn1_state=true;
-    DEBUG_PRINT("Pushed");
+    //DEBUG_PRINT("Pushed");
     //on met en place le timeout
     timer.setTimeout(1000, clear_btn1);
   }
@@ -211,8 +216,8 @@ void isr_btn2()
   if(btn1_state)
   {
     btn1_state=false;
-    DEBUG_PRINT("Pushed 2");
-    DEBUG_PRINT("Bouteille");
+    //DEBUG_PRINT("Pushed 2");
+    //DEBUG_PRINT("Bouteille");
     Nb_bouteilles++; 
     EEPROM.write(43, Nb_bouteilles >> 8);
     EEPROM.write(42, Nb_bouteilles & 0x00FF);
@@ -226,32 +231,34 @@ void clear_btn1()
   if(btn1_state)
   {
     btn1_state=false;
-    DEBUG_PRINT("Btn1 TimeOut");  
+    //DEBUG_PRINT("Btn1 TimeOut");  
   }
 }
 
 // Pour envoyer le premier SMS au démarrage (id, date, nbBouteilles, batterie)
 void sendPing(){
-	Time t = rtc.time();
+	DEBUG_PRINT("sendingPing");
+	getTime(intCheckUpdate);
+	getTime(intCheckUpdate);
 	long indBattery=readVcc();
 	char str[49]; // 10 + 2 + 1 + 2 + 1 + 2 + 1 + 4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 5 + 1 + 10 (long, on sait jamais) = 49
-	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec, Nb_bouteilles, indBattery);
+	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
 // Pour envoyer les SMS d'update (id, date, nbBouteilles, batterie)
 void sendUpdatedCounter(){
-	Time t = rtc.time();
 	long indBattery=readVcc();
 	char str[51]; // 2 + 49 = 51
-	sprintf(str, "NYBI;UPDATE;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, t.date, t.mon, t.yr, t.hr, t.min, t.sec, Nb_bouteilles, indBattery);
+	sprintf(str, "NYBI;UPDATE;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
 // Envoie un SMS
 void sendSMS(char* str){
-        cell.println("AT+CFUN=0");
-        delay(60000);
+    cell.println("AT+CFUN=1"); // mode normal
+	DEBUG_PRINT("sending SMS");
+    delay(60000);
         
 	//cell.println("AT+CMGF=1"); // set SMS mode to text
 	cell.print("AT+CMGS=");  // now send message...
@@ -260,30 +267,32 @@ void sendSMS(char* str){
 	cell.write(34);  // ASCII equivalent of "
 	cell.write(13);  // ASCII equivalent of Carriage Return
 	delay(500); // give the module some thinking time
-        cell.print(str);
+    cell.print(str);
 	cell.write(26);  // ASCII equivalent of Ctrl-Z}
 
-        cell.println("AT+CFUN=1");
+    cell.println("AT+CFUN=0"); // mode minimal (mais rtc fonctionnelle)
+	DEBUG_PRINT("SMS sent");
 }
 
 // Regarde si on doit envoyer une update ou remettre les compteurs d'update a zero
 void checkUpdates(){
-	Time t = rtc.time(); // recuperer le temps
+	//Time t = rtc.time(); // recuperer le temps
+	getTime(intCheckUpdate);
 	DEBUG_PRINT("Checking Time");
-	print_time();
+	printTime();
 
-	if (true || (!update1Sent && t.hr >= hourUpdate1 && t.hr <= hourUpdate1+1)){
+	if (true && (!update1Sent && currentTime.hour >= hourUpdate1 && currentTime.hour <= hourUpdate1+1)){
 		sendUpdatedCounter();
 		update1Sent=1;
 		DEBUG_PRINT("Update1");
 	}
-	else if (!update2Sent && t.hr >= hourUpdate2 && t.hr <= hourUpdate2+1){
+	else if (true && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
 		sendUpdatedCounter();
 		update2Sent=1;
 		DEBUG_PRINT("Update2");
 	}
 
-	if (t.hr >= hourReset && t.hr <= hourReset+1){
+	if (currentTime.hour >= hourReset && currentTime.hour <= hourReset+1){
 		update1Sent=0;
 		update2Sent=0;
 		DEBUG_PRINT("Update Reset");
@@ -291,9 +300,9 @@ void checkUpdates(){
 }
 
 void setTime(){
-  cell.print("AT+CCLK=");//12/03/29,19:35:00+04"");
+  cell.print("AT+CCLK=");
   cell.write(34);
-  cell.print("12/03/29,20:53:00+04");
+  cell.print("12/03/29,20:53:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
   cell.write(34);
   cell.write(13);
 }
@@ -316,15 +325,7 @@ void setup() {
     Nb_bouteilles = (EEPROM.read(43) << 8) | EEPROM.read(42);
   
     DEBUG_PRINTDEC(Nb_bouteilles);
-  
-    rtc.write_protect(false);
-    rtc.halt(false);
-
-    /*Init A/M/J h */
-    Time t(2012, 2, 16, 19, 37, 37, 3);
 	
-    /* Chargement de l'heure */
-    rtc.time(t);
   //EEPROM.write(43,0);
   //EEPROM.write(42, 0);
     cell.begin(19200);//9600
@@ -332,24 +333,40 @@ void setup() {
 	delay(5000);
 	cell.print("ATE1\r"); //local echo
     setTime();
-	timerUpdates.setInterval(60000, checkUpdates);//TODO remettre 10 minutes
+	currentTime=newMoment(2012, 3, 31, 0, 0, 1);
+	timerUpdates.setInterval(intCheckUpdate*1000, checkUpdates);
 
-	// delay pour attendre la connexion
-	//delay(60000);
-	//sendPing(); //TODO remettre le ping
+	sendPing(); //TODO remettre le ping
 }
 
 //Boucle principale
 void loop() {
-	if(cell.available()>0){ //If a character comes in from the cellular module...
+	if (cell.available()>0){ //If a character comes in from the cellular module...
 		incoming_char=cell.read();    //Get the character from the cellular serial port.
 		DEBUG_PRINT_CHAR(incoming_char);  //Print the incoming character to the terminal.
 	}
+	if (Serial.available())
+      cell.write(Serial.read()); 
 
-	getTime(180); //TODO pour l'instant getTime déconne, et ne permet de récupérer l'heure convenablement
-	delay(3000);
-    //timer.run();
-    //timerUpdates.run();
+
+  //cell.println("AT+CCLK?");
+  //cell.write(34);
+	/*Moment mom;
+    mom.year = 2012;
+    mom.month = 3;
+    mom.date = 31;
+    mom.hour = 12;
+    mom.minute = 42;
+    mom.second = 15;
+	char str[19]; // 2 + 49 = 51
+  	sprintf(str, "%02d/%02d/%04d %02d:%02d:%02d", mom.date, 3, 2012, 12, 40, 25);
+	//Serial.println(str);	
+	char* ret;
+	momentToString(mom);
+	Serial.println(retMomentToString);*/
+
+    timer.run();
+    timerUpdates.run();
 }
 
 
