@@ -47,13 +47,13 @@ char baseNumber[]="+33631424719"; //TODO numéro auquel les ping/update seront e
 char containerID=0; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
-char hourUpdate1=12;
-char hourUpdate2=19;
+char hourUpdate1=12; // Info: premiere update entre 12h et 14h
+char hourUpdate2=19; // Info: deuxieme update entre 19h et 21h
 char hourReset=0;
 char retMomentToString[20];
 SimpleTimer timerUpdates;
 Moment currentTime;
-int intCheckUpdate=60;  //TODO mettre 600 pour checker l'heure toutes les 10 minutes
+int sCheckUpdate=60;
 
 
 void momentToString(Moment mom){ //Remarque: cette construction est affreuse mais fonctionne, à refaire (mais tester)
@@ -92,6 +92,8 @@ long readVcc() {
 }
 
 void getTime(int delay_s){
+  DEBUG_PRINT("getTime");
+
    // empties the buffer
   while (cell.available() > 0){
     cell.read();
@@ -107,18 +109,19 @@ void getTime(int delay_s){
   int taille=20;
   char str[taille];
    
-  Serial.println("debut");
+  //Serial.println("debut");
   for (int i=0; i<=19; i++){
-    Serial.write(cell.read());
+	cell.read();
+    //Serial.write(cell.read());
   }
-  Serial.println("fin1");
+  //Serial.println("fin1");
    
   if (cell.available() >= taille){
     for (int i = 0; i <= taille-1; i++) {
       str[i] = cell.read();
-      Serial.write(str[i]);
+      //Serial.write(str[i]);
     }
-    Serial.println("fin2");
+    //Serial.println("fin2");
 
     char Syear[3];
     Syear[0]=str[0];
@@ -172,8 +175,8 @@ void getTime(int delay_s){
 		currentTime.minute=mom.minute;
 		currentTime.second=mom.second;
 
-		//momentToString(currentTime);
-		//Serial.println(retMomentToString);
+		momentToString(currentTime);
+		Serial.println(retMomentToString);
 	}
 	else {
 		Serial.println("Return is not a moment : no change done to currentTime");
@@ -238,8 +241,8 @@ void clear_btn1()
 // Pour envoyer le premier SMS au démarrage (id, date, nbBouteilles, batterie)
 void sendPing(){
 	DEBUG_PRINT("sendingPing");
-	getTime(intCheckUpdate);
-	getTime(intCheckUpdate);
+	getTime(sCheckUpdate);
+	getTime(sCheckUpdate);
 	long indBattery=readVcc();
 	char str[49]; // 10 + 2 + 1 + 2 + 1 + 2 + 1 + 4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 5 + 1 + 10 (long, on sait jamais) = 49
 	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
@@ -257,7 +260,7 @@ void sendUpdatedCounter(){
 // Envoie un SMS
 void sendSMS(char* str){
     cell.println("AT+CFUN=1"); // mode normal
-	DEBUG_PRINT("sending SMS");
+	DEBUG_PRINT("sendingSMS");
     delay(60000);
         
 	//cell.println("AT+CMGF=1"); // set SMS mode to text
@@ -271,25 +274,25 @@ void sendSMS(char* str){
 	cell.write(26);  // ASCII equivalent of Ctrl-Z}
 
     cell.println("AT+CFUN=0"); // mode minimal (mais rtc fonctionnelle)
-	DEBUG_PRINT("SMS sent");
+	//DEBUG_PRINT("SMS sent");
 }
 
 // Regarde si on doit envoyer une update ou remettre les compteurs d'update a zero
 void checkUpdates(){
 	//Time t = rtc.time(); // recuperer le temps
-	getTime(intCheckUpdate);
+	getTime(sCheckUpdate);
 	DEBUG_PRINT("Checking Time");
 	printTime();
 
 	if (true && (!update1Sent && currentTime.hour >= hourUpdate1 && currentTime.hour <= hourUpdate1+1)){
+		DEBUG_PRINT("Update1");
 		sendUpdatedCounter();
 		update1Sent=1;
-		DEBUG_PRINT("Update1");
 	}
 	else if (true && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
+		DEBUG_PRINT("Update2");
 		sendUpdatedCounter();
 		update2Sent=1;
-		DEBUG_PRINT("Update2");
 	}
 
 	if (currentTime.hour >= hourReset && currentTime.hour <= hourReset+1){
@@ -302,7 +305,7 @@ void checkUpdates(){
 void setTime(){
   cell.print("AT+CCLK=");
   cell.write(34);
-  cell.print("12/03/29,20:53:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
+  cell.print("12/03/29,12:43:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
   cell.write(34);
   cell.write(13);
 }
@@ -326,17 +329,20 @@ void setup() {
   
     DEBUG_PRINTDEC(Nb_bouteilles);
 	
-  //EEPROM.write(43,0);
-  //EEPROM.write(42, 0);
+  	EEPROM.write(43,0); // TODO pour le setup uniquement
+  	EEPROM.write(42, 0); // idem
+
+	delay(10000); //10 secondes de + pour allumer la shield, à enlever si démarrage auto
+
     cell.begin(19200);//9600
 	DEBUG_PRINT("Starting SIM900 Communication...");//SM5100B
 	delay(5000);
 	cell.print("ATE1\r"); //local echo
-    setTime();
+    setTime(); //TODO pour le setup uniquement, +TODO : ne fonctionne pas (pourquoi??!), mieux vaut régler l'heure par le port Serie en lancant la commande AT+CCLK="12/03/29,12:43:00+04"  puis AT+CCLK? pour vérifier via le port série (utiliser SIM900.ino par exemple)
 	currentTime=newMoment(2012, 3, 31, 0, 0, 1);
-	timerUpdates.setInterval(intCheckUpdate*1000, checkUpdates);
+	timerUpdates.setInterval(60000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
 
-	sendPing(); //TODO remettre le ping
+	sendPing();
 }
 
 //Boucle principale
