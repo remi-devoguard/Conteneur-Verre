@@ -5,6 +5,7 @@
 
 #include "DS1302.h"
 #include "SimpleTimer.h"
+#include "arduino_CUGN.h"
 
 //Nb Bouteilles
 unsigned int Nb_bouteilles;
@@ -51,6 +52,36 @@ char hourUpdate2=19;
 char hourReset=0;
 SimpleTimer timerUpdates;
 
+
+Moment momentFromString(char* str){
+
+
+}
+
+void writeln(char* str, int taille){
+  for (int i=0; i<taille; i++){
+    Serial.write(str[i]);
+  }
+}
+
+char* momentToString(Moment mom){
+  char str[19]; // 2 + 49 = 51
+  sprintf(str, "%02d/%02d/%04d %02d:%02d:%02d", mom.date, mom.month, mom.year, mom.hour, mom.minute, mom.second);
+  return str;
+}
+
+Moment newMoment(int year, int month, int date, int hour, int minute, int second)
+{
+  Moment mom;
+  mom.year = year;
+  mom.month = month;
+  mom.date = date;
+  mom.hour = hour;
+  mom.minute = minute;
+  mom.second = second;
+  return mom;
+}
+
 //Fonction Lecture VCC
 long readVcc() {
   long result;
@@ -63,6 +94,87 @@ long readVcc() {
   result |= ADCH<<8;
   result = 1126400L / result; // Back-calculate AVcc in mV
   return result;
+}
+
+
+int charToInt(char c){
+  char str[1];
+  str[0]=c;
+  return atoi(str);
+}
+
+void getTime(int delay_s){
+  Serial.println("time");
+   
+   // empties the buffer
+  while (Serial.available() > 0){
+    cell.read();
+  }
+   
+  cell.println("AT+CCLK?");
+  delay(500);
+  int taille=20;
+  char str[taille];
+   
+  while (cell.available() > 29){
+    cell.read();
+  }
+   
+  if (cell.available() >= taille){  //reading a single 5 byte command
+    for (int i = 0; i <= taille-1; i++) {
+      str[i] = cell.read();
+      Serial.write(str[i]);
+    }
+
+    char Syear[2];
+    Syear[0]=str[0];
+    Syear[1]=str[1];
+    int year=atoi(Syear);    
+
+    char Smonth[2];
+    Smonth[0]=str[3];
+    Smonth[1]=str[4];
+    int month=atoi(Smonth);    
+
+    char Sdate[2];
+    Sdate[0]=str[6];
+    Sdate[1]=str[7];
+    int date=atoi(Sdate);    
+
+    char Shour[2];
+    Shour[0]=str[9];
+    Shour[1]=str[10];
+    int hour=atoi(Shour);   
+
+    char Sminute[2];
+    Sminute[0]=str[12];
+    Sminute[1]=str[13];
+    int minute=atoi(Sminute);   
+
+    char Ssecond[2];
+    Ssecond[0]=str[15];
+    Ssecond[1]=str[16];
+    int second=atoi(Ssecond);   
+
+    // TODO 
+    Moment mom;
+    mom.year = 2000+year;
+    mom.month = month;
+    mom.date = date;
+    mom.hour = hour;
+    mom.minute = minute;
+    mom.second = second;
+	
+	/*Serial.write(year);
+	Serial.write(month);
+	Serial.write(date);
+	Serial.write(hour);
+	Serial.write(minute);*/
+	writeln(momentToString(mom), taille);
+    
+    //Serial.println("");
+     //Serial.write(str);
+  }
 }
 
 
@@ -178,6 +290,14 @@ void checkUpdates(){
 	}
 }
 
+void setTime(){
+  cell.print("AT+CCLK=");//12/03/29,19:35:00+04"");
+  cell.write(34);
+  cell.print("12/03/29,20:53:00+04");
+  cell.write(34);
+  cell.write(13);
+}
+
 //Setup
 void setup() {
     pinMode(2, INPUT);
@@ -211,11 +331,12 @@ void setup() {
 	DEBUG_PRINT("Starting SIM900 Communication...");//SM5100B
 	delay(5000);
 	cell.print("ATE1\r"); //local echo
+    setTime();
 	timerUpdates.setInterval(60000, checkUpdates);//TODO remettre 10 minutes
 
 	// delay pour attendre la connexion
 	//delay(60000);
-	//sendPing();
+	//sendPing(); //TODO remettre le ping
 }
 
 //Boucle principale
@@ -225,8 +346,10 @@ void loop() {
 		DEBUG_PRINT_CHAR(incoming_char);  //Print the incoming character to the terminal.
 	}
 
-    timer.run();
-    timerUpdates.run();
+	getTime(180); //TODO pour l'instant getTime déconne, et ne permet de récupérer l'heure convenablement
+	delay(3000);
+    //timer.run();
+    //timerUpdates.run();
 }
 
 
