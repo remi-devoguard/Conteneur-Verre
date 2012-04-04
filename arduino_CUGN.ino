@@ -25,26 +25,21 @@ unsigned int Nb_bouteilles;
 //Création de l'objet Timer
 SimpleTimer timer;
 
-//PINs pour DS21302
-uint8_t CE_PIN   = 5;
-uint8_t IO_PIN   = 6;
-uint8_t SCLK_PIN = 7;
-
 char buf[50];
 
 //Flag pour état btn1
 boolean btn1_state = false;
 
 //Création de l'objet pour gestion DS1302
-DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
+//DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
 
 // Serial:
 char incoming_char=0;      //Will hold the incoming character from the Serial Port.
-SoftwareSerial cell(8,9);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
+SoftwareSerial cell(7,8);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
 
 // Conteneur:
-char baseNumber[]="+33631424719"; //TODO numéro auquel les ping/update seront envoyes
-char containerID=0; // TODO l'id du conteneur courant, à modifier à chaque fois
+char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
+char containerID=1; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12; // Info: premiere update entre 12h et 14h
@@ -243,38 +238,42 @@ void sendPing(){
 	DEBUG_PRINT("sendingPing");
 	getTime(sCheckUpdate);
 	getTime(sCheckUpdate);
+	getTime(sCheckUpdate);
 	long indBattery=readVcc();
 	char str[49]; // 10 + 2 + 1 + 2 + 1 + 2 + 1 + 4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 5 + 1 + 10 (long, on sait jamais) = 49
-	sprintf(str, "NYBI;PING;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
+	sprintf(str, "NYBI;PING;%02d;%02d-%02d-%04d-%02d:%02d:%02d;%05d;%04d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
 // Pour envoyer les SMS d'update (id, date, nbBouteilles, batterie)
 void sendUpdatedCounter(){
 	long indBattery=readVcc();
-	char str[51]; // 2 + 49 = 51
-	sprintf(str, "NYBI;UPDATE;%d;%d/%d/%d %d:%d:%d;%d;%d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
+	char str[49]; // 2 + 49 = 51
+	sprintf(str, "NYBI;UPDA;%02d;%02d-%02d-%04d-%02d:%02d:%02d;%05d;%04d", containerID, currentTime.date, currentTime.month, currentTime.year, currentTime.hour, currentTime.minute, currentTime.second, Nb_bouteilles, indBattery);
 	sendSMS(str);
 }
 
 // Envoie un SMS
 void sendSMS(char* str){
-    cell.println("AT+CFUN=1"); // mode normal
+    cell.print("AT+CFUN=1"); // mode normal
+	cell.write((byte)13);
 	DEBUG_PRINT("sendingSMS");
     delay(60000);
         
 	//cell.println("AT+CMGF=1"); // set SMS mode to text
 	cell.print("AT+CMGS=");  // now send message...
-	cell.write(34); // ASCII equivalent of "
+	cell.write((byte)34); // ASCII equivalent of "
 	cell.print(baseNumber);
-	cell.write(34);  // ASCII equivalent of "
-	cell.write(13);  // ASCII equivalent of Carriage Return
+	cell.write((byte)34);  // ASCII equivalent of "
+	cell.write((byte)13);  // ASCII equivalent of Carriage Return
 	delay(500); // give the module some thinking time
     cell.print(str);
-	cell.write(26);  // ASCII equivalent of Ctrl-Z}
+	//Serial.println(str);
+	cell.write((byte)26);  // ASCII equivalent of Ctrl-Z}
 
-    cell.println("AT+CFUN=0"); // mode minimal (mais rtc fonctionnelle)
-	//DEBUG_PRINT("SMS sent");
+	DEBUG_PRINT("SMS sent");
+    cell.print("AT+CFUN=0"); // mode minimal (mais rtc fonctionnelle)
+	cell.write((byte)13);
 }
 
 // Regarde si on doit envoyer une update ou remettre les compteurs d'update a zero
@@ -289,7 +288,7 @@ void checkUpdates(){
 		sendUpdatedCounter();
 		update1Sent=1;
 	}
-	else if (true && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
+	else if (false && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
 		DEBUG_PRINT("Update2");
 		sendUpdatedCounter();
 		update2Sent=1;
@@ -304,10 +303,10 @@ void checkUpdates(){
 
 void setTime(){
   cell.print("AT+CCLK=");
-  cell.write(34);
-  cell.print("12/03/29,12:43:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
-  cell.write(34);
-  cell.write(13);
+  cell.write((byte)34);
+  cell.print("12/04/04,20:48:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
+  cell.write((byte)34);
+  cell.write((byte)13);
 }
 
 //Setup
@@ -323,24 +322,34 @@ void setup() {
     attachInterrupt(0, isr_btn1, FALLING);
     attachInterrupt(1, isr_btn2, FALLING);   
     
+	//Allumage de la SIM900
+	pinMode(9, OUTPUT); 
+ 	digitalWrite(9,LOW);	
+	delay(1000);
+	digitalWrite(9,HIGH);
+	delay(2500);
+ 	digitalWrite(9,LOW);
+ 	delay(3500);
+
     Serial.begin(9600);
     
     Nb_bouteilles = (EEPROM.read(43) << 8) | EEPROM.read(42);
   
     DEBUG_PRINTDEC(Nb_bouteilles);
 	
-  	EEPROM.write(43,0); // TODO pour le setup uniquement
-  	EEPROM.write(42, 0); // idem
+  	//EEPROM.write(43,0); // TODO pour le setup uniquement
+  	//EEPROM.write(42, 0); // idem
 
 	delay(10000); //10 secondes de + pour allumer la shield, à enlever si démarrage auto
 
-    cell.begin(19200);//9600
+    cell.begin(9600);//9600 19200
 	DEBUG_PRINT("Starting SIM900 Communication...");//SM5100B
 	delay(5000);
-	cell.print("ATE1\r"); //local echo
-    setTime(); //TODO pour le setup uniquement, +TODO : ne fonctionne pas (pourquoi??!), mieux vaut régler l'heure par le port Serie en lancant la commande AT+CCLK="12/03/29,12:43:00+04"  puis AT+CCLK? pour vérifier via le port série (utiliser SIM900.ino par exemple)
+	//cell.print("ATE1\r"); //local echo
+    //setTime(); //TODO pour le setup uniquement
+	DEBUG_PRINT("Setup done...");//SM5100B
 	currentTime=newMoment(2012, 3, 31, 0, 0, 1);
-	timerUpdates.setInterval(60000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
+	timerUpdates.setInterval(80000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
 
 	sendPing();
 }
