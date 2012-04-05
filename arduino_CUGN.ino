@@ -39,6 +39,7 @@ SoftwareSerial cell(7,8);  //Create a 'fake' serial port. Pin 8 is the Rx pin, p
 
 // Conteneur:
 char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
+//char baseNumber[]="+33631424719";
 char containerID=1; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
@@ -288,11 +289,11 @@ void checkUpdates(){
 		sendUpdatedCounter();
 		update1Sent=1;
 	}
-	else if (false && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
-		DEBUG_PRINT("Update2");
-		sendUpdatedCounter();
-		update2Sent=1;
-	}
+	//else if (false && (!update2Sent && currentTime.hour >= hourUpdate2 && currentTime.hour <= hourUpdate2+1)){ // TODO passer a false si une seule update
+	//	DEBUG_PRINT("Update2");
+	//	sendUpdatedCounter();
+	//	update2Sent=1;
+	//}
 
 	if (currentTime.hour >= hourReset && currentTime.hour <= hourReset+1){
 		update1Sent=0;
@@ -304,7 +305,7 @@ void checkUpdates(){
 void setTime(){
   cell.print("AT+CCLK=");
   cell.write((byte)34);
-  cell.print("12/04/04,20:48:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
+  cell.print("12/04/04,22:46:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
   cell.write((byte)34);
   cell.write((byte)13);
 }
@@ -335,21 +336,22 @@ void setup() {
     
     Nb_bouteilles = (EEPROM.read(43) << 8) | EEPROM.read(42);
   
+	DEBUG_PRINT("Nombre de bouteilles : ");
     DEBUG_PRINTDEC(Nb_bouteilles);
 	
   	//EEPROM.write(43,0); // TODO pour le setup uniquement
   	//EEPROM.write(42, 0); // idem
 
-	delay(10000); //10 secondes de + pour allumer la shield, à enlever si démarrage auto
+	delay(1000); //10 secondes de + pour allumer la shield, à enlever si démarrage auto
 
     cell.begin(9600);//9600 19200
 	DEBUG_PRINT("Starting SIM900 Communication...");//SM5100B
-	delay(5000);
+	delay(3000);
 	//cell.print("ATE1\r"); //local echo
     //setTime(); //TODO pour le setup uniquement
 	DEBUG_PRINT("Setup done...");//SM5100B
 	currentTime=newMoment(2012, 3, 31, 0, 0, 1);
-	timerUpdates.setInterval(80000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
+	timerUpdates.setInterval(600000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
 
 	sendPing();
 }
