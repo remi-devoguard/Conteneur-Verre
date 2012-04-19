@@ -40,7 +40,7 @@ SoftwareSerial cell(7,8);  //Create a 'fake' serial port. Pin 8 is the Rx pin, p
 // Conteneur:
 char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
 //char baseNumber[]="+33631424719";
-char containerID=1; // TODO l'id du conteneur courant, à modifier à chaque fois
+char containerID=7; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12; // Info: premiere update entre 12h et 14h
@@ -254,14 +254,22 @@ void sendUpdatedCounter(){
 	sendSMS(str);
 }
 
+void printLine(char* str){
+	Serial.print(str);
+	Serial.write((byte)13);
+}
+
 // Envoie un SMS
 void sendSMS(char* str){
     cell.print("AT+CFUN=1"); // mode normal
 	cell.write((byte)13);
-	DEBUG_PRINT("sendingSMS");
+	printLine("sendingSMS");
     delay(60000);
         
 	//cell.println("AT+CMGF=1"); // set SMS mode to text
+	cell.print("AT+CMGF=1");
+	cell.write((byte)13);
+	delay(500);
 	cell.print("AT+CMGS=");  // now send message...
 	cell.write((byte)34); // ASCII equivalent of "
 	cell.print(baseNumber);
@@ -270,9 +278,11 @@ void sendSMS(char* str){
 	delay(500); // give the module some thinking time
     cell.print(str);
 	//Serial.println(str);
-	cell.write((byte)26);  // ASCII equivalent of Ctrl-Z}
+	cell.write(26);  // ASCII equivalent of Ctrl-Z}
 
-	DEBUG_PRINT("SMS sent");
+	delay(20000);
+
+	printLine("SMS sent");
     cell.print("AT+CFUN=0"); // mode minimal (mais rtc fonctionnelle)
 	cell.write((byte)13);
 }
@@ -305,7 +315,7 @@ void checkUpdates(){
 void setTime(){
   cell.print("AT+CCLK=");
   cell.write((byte)34);
-  cell.print("12/04/04,22:46:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
+  cell.print("12/04/16,20:37:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
   cell.write((byte)34);
   cell.write((byte)13);
 }
@@ -363,7 +373,7 @@ void loop() {
 		DEBUG_PRINT_CHAR(incoming_char);  //Print the incoming character to the terminal.
 	}
 	if (Serial.available())
-      cell.write(Serial.read()); 
+      cell.write(Serial.read());
 
 
   //cell.println("AT+CCLK?");
