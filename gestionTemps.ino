@@ -7,8 +7,7 @@ void printTime(){
   Serial.println(retMomentToString);
 }
 
-Moment newMoment(int year, int month, int date, int hour, int minute, int second)
-{
+Moment newMoment(int year, int month, int date, int hour, int minute, int second){
   Moment mom;
   mom.year = year;
   mom.month = month;

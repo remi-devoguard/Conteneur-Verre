@@ -1,8 +1,6 @@
 //interrupt quand btn1 appuyé
-void isr_btn1()
-{ 
-  if(!btn1_state)
-  {
+void isr_btn1(){ 
+  if(!btn1_state){
     btn1_state=true;
     //DEBUG_PRINT("Pushed");
     //on met en place le timeout
@@ -12,10 +10,8 @@ void isr_btn1()
 
 
 //interrupt quand btn2 appuyé
-void isr_btn2()
-{
-  if(btn1_state)
-  {
+void isr_btn2(){
+  if(btn1_state){
     btn1_state=false;
     //DEBUG_PRINT("Pushed 2");
     //DEBUG_PRINT("Bouteille");
@@ -27,10 +23,8 @@ void isr_btn2()
 
 
 //On enleve le flag quand le timeout du 1er btn est atteint
-void clear_btn1()
-{
-  if(btn1_state)
-  {
+void clear_btn1(){
+  if(btn1_state){
     btn1_state=false;
     //DEBUG_PRINT("Btn1 TimeOut");  
   }

@@ -1,5 +1,4 @@
- void startShield()
-{
+ void startShield(){
     DEBUG_PRINT("Starting Shield");
     pinMode(9, OUTPUT); 
     digitalWrite(9,LOW);	
@@ -12,14 +11,12 @@
 
 }
 
-void sleepShield()
-{
+void sleepShield(){
     cell.print("AT+CFUN=0"); // mode normal
     cell.write((byte)13);
 }
 
-void wakeShield()
-{
+void wakeShield(){
     cell.print("AT+CFUN=1"); // mode normal
     cell.write((byte)13);
 }

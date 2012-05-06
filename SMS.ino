@@ -21,10 +21,7 @@ void sendUpdatedCounter(){
 // Envoie un SMS
 void sendSMS(char* str){
     wakeShield();
-    printLine("sendingSMS");
-    delay(60000);
-        
-    //cell.println("AT+CMGF=1"); // set SMS mode to text
+    printLine("sendingSMS");    
     cell.print("AT+CMGF=1");
     cell.write((byte)13);
     delay(500);

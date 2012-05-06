@@ -1,3 +1,5 @@
+#define CONTAINERID 9
+//#define DEBUG
 #include <SoftwareSerial.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,7 +8,6 @@
 #include "SimpleTimer.h"
 #include "arduino_CUGN.h"
 
-#define DEBUG
 
 #ifdef DEBUG
   #define DEBUG_PRINT_CHAR(x) Serial.print (x)
@@ -15,6 +16,7 @@
 #else
   #define DEBUG_PRINT(x)
   #define DEBUG_PRINTDEC(x)
+  #define DEBUG_PRINT_CHAR(x)
 #endif 
 
 //Nb Bouteilles
@@ -31,10 +33,9 @@ char incoming_char=0;      //Will hold the incoming character from the Serial Po
 SoftwareSerial cell(7,8);  //Create a 'fake' serial port. Pin 8 is the Rx pin, pin 9 is the Tx pin.
 
 // Conteneur:
-char baseNumber[]="+33679552469"; //TODO numéro auquel les ping/update seront envoyes
-//char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
+char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
 //char baseNumber[]="+33631424719";
-char containerID=99; // TODO l'id du conteneur courant, à modifier à chaque fois
+char containerID=CONTAINERID; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
 char hourUpdate1=12; // Info: premiere update entre 12h et 14h
@@ -50,8 +51,7 @@ void printLine(char* str){
 	Serial.write((byte)13);
 }
 
-void firstInit()
-{
+void firstInit(){
       EEPROM.write(43,0); // TODO pour le setup uniquement
       EEPROM.write(42, 0); // idem
       setTime();
