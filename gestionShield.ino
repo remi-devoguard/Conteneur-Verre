@@ -12,11 +12,13 @@
 }
 
 void sleepShield(){
-    cell.print("AT+CFUN=0"); // mode normal
+    cell.print("AT+CFUN=0"); // mode sleep
     cell.write((byte)13);
+    delay(20000);
 }
 
 void wakeShield(){
     cell.print("AT+CFUN=1"); // mode normal
     cell.write((byte)13);
+    delay(20000);
 }

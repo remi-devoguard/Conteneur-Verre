@@ -1,5 +1,5 @@
-#define CONTAINERID 9
-//#define DEBUG
+#define CONTAINERID 4
+#define DEBUG
 #include <SoftwareSerial.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +35,7 @@ SoftwareSerial cell(7,8);  //Create a 'fake' serial port. Pin 8 is the Rx pin, p
 // Conteneur:
 char baseNumber[]="+33604049221"; //TODO numéro auquel les ping/update seront envoyes
 //char baseNumber[]="+33631424719";
+//char baseNumber[]="+33679552469";
 char containerID=CONTAINERID; // TODO l'id du conteneur courant, à modifier à chaque fois
 char update1Sent=0;
 char update2Sent=0;
@@ -54,7 +55,7 @@ void printLine(char* str){
 void firstInit(){
       EEPROM.write(43,0); // TODO pour le setup uniquement
       EEPROM.write(42, 0); // idem
-      setTime();
+      //setTime();
 }
 
 
@@ -109,8 +110,9 @@ void setup() {
     currentTime=newMoment(2012, 3, 31, 0, 0, 1);
     
     timerUpdates.setInterval(3000000, checkUpdates);  //TODO mettre 600000 pour checker l'heure toutes les 10 minutes
-
+    //firstInit();
     sendPing();
+    //sendUpdatedCounter();
 }
 
 //Boucle principale

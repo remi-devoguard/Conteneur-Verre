@@ -129,7 +129,7 @@ void getTime(int delay_s){
 void setTime(){
   cell.print("AT+CCLK=");
   cell.write((byte)34);
-  cell.print("12/04/16,20:37:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
+  cell.print("12/05/10,18:37:00+04"); //TODO yy/mm/dd, hh:mm:ss+04    changer ici pour mettre à l'heure la shield / arduino
   cell.write((byte)34);
   cell.write((byte)13);
 }
